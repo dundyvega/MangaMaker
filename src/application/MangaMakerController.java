@@ -15,6 +15,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
+import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseDragEvent;
 import javafx.scene.input.MouseEvent;
@@ -44,14 +45,16 @@ public class MangaMakerController implements Initializable {
 	
 	private Scene scene;
 
-	private Color[][] colorMap;
+	
 	
 	private double startLineX, startLineY;
 	
 	
-	private double lineWidth = 10;
+	private double lineWidth = 8;
 	
 	private Canvas canvas1, canvas2, canvas3, canvas4, canvas5;
+	
+
 	
 	private int selectedLayer = 1;
 	
@@ -83,8 +86,13 @@ public class MangaMakerController implements Initializable {
     private boolean beginResized = false;
     private boolean rBegin = false;
     private boolean mBegin = false;
+    private int cursor = -1;
+    
+    private boolean firstMozgas = false;
     
     private final double PROX_DIST = 3;
+    
+    private WritableImage img1, img2, img3, img4, img5;
     
 	
 	
@@ -223,8 +231,44 @@ public class MangaMakerController implements Initializable {
 	    			//itt történik a növesztés, mozgatás, stb.
 	    			switch(kockanKivul(mouseX, mouseY)) {
 	    			case 0: resizeKocka(mouseX, mouseY) ; rBegin = true; break; //átméretezés
-	    			case 1: moveKocka(mouseX, mouseY); mBegin = true; break; //mozgatás
-	    			case -1: beginResized = false; resizeOnProgress = false; break; //új átméretezés
+	    			case 1: moveKocka(mouseX, mouseY); 
+	    				if (!mBegin) {
+	    					mBegin = true;
+	    					if (!firstMozgas) {
+	    						img1 = this.getPartOfImage(canvas1, (int)resizeX, (int)resizeY, (int)resizeW, (int)resizeH);
+	    						img2 = this.getPartOfImage(canvas2, (int)resizeX, (int)resizeY, (int)resizeW, (int)resizeH);
+	    						img3 = this.getPartOfImage(canvas3, (int)resizeX, (int)resizeY, (int)resizeW, (int)resizeH);
+	    						img4 = this.getPartOfImage(canvas4, (int)resizeX, (int)resizeY, (int)resizeW, (int)resizeH);
+	    						img5 = this.getPartOfImage(canvas5, (int)resizeX, (int)resizeY, (int)resizeW, (int)resizeH);
+    							
+	    						
+	    						
+	    						firstMozgas = true;
+	    						
+	    						setDisableResizeValues(true);
+	    						
+	    						
+	    						/**már meg van rajzolva a kocka*/
+	    						if (resizeAllCanvases.isSelected()) { //ha mindegyiken
+	    							System.out.println("fsdf");
+	    							clearRectOnCanvas(resizeX, resizeY, resizeW, resizeH, canvas1, Color.TRANSPARENT);
+	    							clearRectOnCanvas(resizeX, resizeY, resizeW, resizeH, canvas2, Color.TRANSPARENT);
+	    							clearRectOnCanvas(resizeX, resizeY, resizeW, resizeH, canvas3, Color.TRANSPARENT);
+	    							clearRectOnCanvas(resizeX, resizeY, resizeW, resizeH, canvas4, Color.TRANSPARENT);
+	    							clearRectOnCanvas(resizeX, resizeY, resizeW, resizeH, canvas5, Color.TRANSPARENT);
+	    							drawCanvasesToCanvas();
+	    						} else {
+	    							clearRectOnCanvas(resizeX, resizeY, resizeW, resizeH, selectedCanvas(), Color.TRANSPARENT);
+	    						}
+	    						
+	    					}
+	    					
+	    				}
+	    			
+	    			break; //mozgatás
+	    			case -1: beginResized = false; resizeOnProgress = false; firstMozgas = false; 
+	    				drawCanvasesToCanvas();
+	    			break; //új átméretezés
 	    			
 	    			}
 	    			
@@ -251,16 +295,114 @@ public class MangaMakerController implements Initializable {
     	
     }
 
-    private void moveKocka(double mouseX, double mouseY) {
+   
+	private void setDisableResizeValues(boolean value) {
+		// TODO Auto-generated method stub
+		resizeAllCanvases.setDisable(value);
+		this.layer1Button.setDisable(value);
+		this.layer2Button.setDisable(value);
+		this.layer3Button.setDisable(value);
+		this.layer4Button.setDisable(value);
+		this.layer5Button.setDisable(value);
+		
+	}
+
+	private Canvas selectedCanvas() {
+		// TODO Auto-generated method stub
+    	switch(selectedLayer) {
+    	case 1: return canvas1;
+    	case 2: return canvas2;
+    	case 3: return canvas3;
+    	case 4: return canvas4;
+    	case 5: return canvas5;
+    	}
+    	
+    	
+		return null;
+	}
+	
+	
+	private WritableImage getSelectedImage() {
+		// TODO Auto-generated method stub
+    	switch(selectedLayer) {
+    	case 1: return img1;
+    	case 2: return img2;
+    	case 3: return img3;
+    	case 4: return img4;
+    	case 5: return img5;
+    	}
+    	
+    	
+		return null;
+	}
+
+	private void moveKocka(double mouseX, double mouseY) {
 		// TODO Auto-generated method stub
     	//drowResizeRecToCanvas6(mouseX, mouseY);
     	resizeX = resizeX + mouseX - startLineX;
     	resizeY = resizeY + mouseY - startLineY;
     	
     	Canvas canvas6 = new Canvas(canvas.getWidth(), canvas.getHeight());
-    	fillCanvas(canvas6, Color.TRANSPARENT);
+    	fillCanvas(0, 0, canvas6, Color.TRANSPARENT);
     	
     	GraphicsContext gc = canvas6.getGraphicsContext2D();
+    	if (this.resizeAllCanvases.isSelected()) {
+    		gc.drawImage(img1, resizeX, resizeY);
+    		gc.drawImage(img2, resizeX, resizeY);
+    		gc.drawImage(img3, resizeX, resizeY);
+    		gc.drawImage(img4, resizeX, resizeY);
+    		gc.drawImage(img5, resizeX, resizeY);	
+    	} else {
+    		
+    		switch (selectedLayer) {
+    		case 1: 
+    			gc.drawImage(img1, resizeX, resizeY);
+    			gc.drawImage(convertCanvasToImage(canvas1), 0, 0);
+    			gc.drawImage(convertCanvasToImage(canvas2), 0, 0);
+    			gc.drawImage(convertCanvasToImage(canvas3), 0, 0);
+    			gc.drawImage(convertCanvasToImage(canvas4), 0, 0);
+    			gc.drawImage(convertCanvasToImage(canvas5), 0, 0);
+    			break;
+    			
+    		case 2: 
+    			gc.drawImage(convertCanvasToImage(canvas1), 0, 0);
+    			gc.drawImage(img2, resizeX, resizeY);
+    			gc.drawImage(convertCanvasToImage(canvas3), 0, 0);
+    			gc.drawImage(convertCanvasToImage(canvas4), 0, 0);
+    			gc.drawImage(convertCanvasToImage(canvas5), 0, 0);
+    			break;
+    			
+    		case 3:
+    			gc.drawImage(convertCanvasToImage(canvas1), 0, 0);
+    			gc.drawImage(convertCanvasToImage(canvas2), 0, 0);
+    			gc.drawImage(img3, resizeX, resizeY);
+    			gc.drawImage(convertCanvasToImage(canvas4), 0, 0);
+    			gc.drawImage(convertCanvasToImage(canvas5), 0, 0);
+    			break;
+    			
+    		case 4:
+    			gc.drawImage(convertCanvasToImage(canvas1), 0, 0);
+    			gc.drawImage(convertCanvasToImage(canvas2), 0, 0);
+    			gc.drawImage(convertCanvasToImage(canvas3), 0, 0);
+    			gc.drawImage(img4, resizeX, resizeY);
+    			gc.drawImage(convertCanvasToImage(canvas5), 0, 0);
+    			break;
+    			
+    		case 5: 
+    			gc.drawImage(convertCanvasToImage(canvas1), 0, 0);
+    			gc.drawImage(convertCanvasToImage(canvas2), 0, 0);
+    			gc.drawImage(convertCanvasToImage(canvas3), 0, 0);
+    			gc.drawImage(convertCanvasToImage(canvas4), 0, 0);
+    			gc.drawImage(img5, resizeX, resizeY);
+    			break;
+    			
+    		}
+    		
+    		
+    		//gc.drawImage(getSelectedImage(), resizeX, resizeY);
+    	}
+    	
+    	
     	gc.setStroke(Color.BLACK);
     	
     	gc.setLineDashes(4.2, 5.1, 6.1, 5.3, 6.4, 1.5);
@@ -278,7 +420,22 @@ public class MangaMakerController implements Initializable {
     	 * 
     	 * 
     	 * */
+    	
+    	/*PixelReader reader = oldImage.getPixelReader();
+WritableImage newImage = new WritableImage(reader, x, y, width, height);*/
+    	
+    
+    	
+    	
+    	
 		
+	}
+	
+	
+	private WritableImage getPartOfImage(Canvas cv, int x, int y, int w, int h) {
+		
+		PixelReader reader = convertCanvasToImage(cv).getPixelReader();
+		return new WritableImage(reader, x, y, w, h);
 	}
 
     
@@ -362,7 +519,7 @@ public class MangaMakerController implements Initializable {
 		
 		
 		Canvas canvas6 = new Canvas(canvas.getWidth(), canvas.getHeight());
-    	fillCanvas(canvas6, Color.TRANSPARENT);
+    	fillCanvas(0, 0, canvas6, Color.TRANSPARENT);
     	
     	GraphicsContext gc = canvas6.getGraphicsContext2D();
     	gc.setStroke(Color.BLACK);
@@ -383,7 +540,7 @@ public class MangaMakerController implements Initializable {
 	private void drowResizeRecToCanvas6(double mouseX, double mouseY) {
 		// TODO Auto-generated method stub
     	Canvas canvas6 = new Canvas(canvas.getWidth(), canvas.getHeight());
-    	fillCanvas(canvas6, Color.TRANSPARENT);
+    	fillCanvas(0, 0, canvas6, Color.TRANSPARENT);
     	
     	double novX = mouseX < startLineX? mouseX:startLineX;
     	double novY = mouseY < startLineY? mouseY:startLineY;
@@ -429,12 +586,19 @@ public class MangaMakerController implements Initializable {
     	
 		
 	}
+	
+
+	 
+	
+	
+	
+	
 
 	private void drawCanvasesToCanvas() {
 		// TODO Auto-generated method stub
 		GraphicsContext gc = canvas.getGraphicsContext2D();
 		
-		fillCanvas(canvas.getWidth(), canvas.getHeight(), canvas, Color.WHITE);
+		fillCanvas(0, 0, canvas.getWidth(), canvas.getHeight(), canvas, Color.WHITE);
          
        
 		gc.drawImage(convertCanvasToImage(canvas1), 0, 0);
@@ -473,6 +637,9 @@ public class MangaMakerController implements Initializable {
 
     @FXML
     void canvasOnMouseMoved(MouseEvent event) {
+    	
+    	statusBar.setText("(" + event.getX() + ", " + event.getY() + ")");
+    	
     	switch (selectedToolbar) {
     	//case 1: break;
     	case 2: 
@@ -484,9 +651,9 @@ public class MangaMakerController implements Initializable {
     			double mouseY = event.getY();
     			
     			switch (kockanKivul(mouseX, mouseY)) {
-    			case 1: scene.setCursor(Cursor.HAND); break;
-    			case -1: scene.setCursor(Cursor.DEFAULT); break;
-    			case 0: scene.setCursor(Cursor.CROSSHAIR);
+    			case 1: scene.setCursor(Cursor.HAND); cursor = 1; break;
+    			case -1: scene.setCursor(Cursor.DEFAULT); cursor = -1; break;
+    			case 0: scene.setCursor(Cursor.CROSSHAIR); cursor = 0;
     			}
     		}
     	}
@@ -524,6 +691,7 @@ public class MangaMakerController implements Initializable {
     void canvasOnMousePressed(MouseEvent event) {
     	startLineX = event.getX();
     	startLineY = event.getY();
+    
     }
 
     @FXML
@@ -531,23 +699,73 @@ public class MangaMakerController implements Initializable {
     	switch (selectedToolbar) {
     	//case 1: /*fentiegyenlőre semmi más*/ break;
     	case 2: /*középső*/ 
+    			
+    			if (this.kockanKivul(event.getX(), event.getY()) == -1) {
+    				berajzol();
+    				
+    				this.drawCanvasesToCanvas();
+    				img1= null;
+    				img2 = null;
+    				img3 = null;
+    				img4 = null;
+    				img5 = null;
+    				this.setDisableResizeValues(false);
+    			}
+    			
     			resizeOnProgress = false;
     			rBegin = false;
     			mBegin = false;
+    			
     			break;
     		
     		}
     }
+    
+    public void berajzol() {
+    	
+    	if (this.resizeAllCanvases.isSelected()) {
+    		
+    		copyImgToCanvas(img1, canvas1);
+    		copyImgToCanvas(img2, canvas2);
+    		copyImgToCanvas(img3, canvas3);
+    		copyImgToCanvas(img4, canvas4);
+    		copyImgToCanvas(img5, canvas5);
+    		
+    	} else {
+    		
+    		switch (selectedLayer) {
+    		case 1: copyImgToCanvas(img1, canvas1); break;
+    		case 2: copyImgToCanvas(img2, canvas2); break;
+    		case 3: copyImgToCanvas(img3, canvas3); break;
+    		case 4: copyImgToCanvas(img4, canvas4); break;
+    		case 5: copyImgToCanvas(img5, canvas5); break;
+    			
+    		}
+    		
+    		
+    		
+    	}
+    	
+    }
 
     
     
-    public void falseToolbarVarables() {
+    private void copyImgToCanvas(WritableImage im, Canvas cv) {
+		// TODO Auto-generated method stub
+    	
+    	GraphicsContext gf = cv.getGraphicsContext2D();
+    	gf.drawImage(im, resizeX, resizeY);
+		
+	}
+
+	public void falseToolbarVarables() {
     	switch (selectedToolbar) {
     	//case 1: break;
     	case 2: 
     		this.resizeOnProgress = false;
     		this.beginResized = false;
     		this.rBegin = false;
+    		this.firstMozgas = false;
     		break;
     		}
     	
@@ -565,48 +783,69 @@ public class MangaMakerController implements Initializable {
 		final double w = canvas.getWidth();
 		final double h = canvas.getHeight(); 
 		
+	
 		
-		colorMap = new Color[(int) w][(int) h];
-		
-		fillCanvas(w, h, canvas, Color.WHITE);
+		fillCanvas(0, 0, w, h, canvas, Color.WHITE);
 		
 		canvas1 = new Canvas(w, h);
-		fillCanvas(w, h, canvas1, Color.TRANSPARENT);
+		fillCanvas(0, 0, w, h, canvas1, Color.TRANSPARENT);
 		
 
 		canvas2 = new Canvas(w, h);
-		fillCanvas(w, h, canvas2, Color.TRANSPARENT);
+		fillCanvas(0, 0, w, h, canvas2, Color.TRANSPARENT);
 		
 
 		canvas3 = new Canvas(w, h);
-		fillCanvas(w, h, canvas1, Color.TRANSPARENT);
+		fillCanvas(0, 0, w, h, canvas1, Color.TRANSPARENT);
 		
 
 		canvas4 = new Canvas(w, h);
-		fillCanvas(w, h, canvas1, Color.TRANSPARENT);
+		fillCanvas(0, 0, w, h, canvas1, Color.TRANSPARENT);
 		
 
 		canvas5 = new Canvas(w, h);
-		fillCanvas(w, h, canvas1, Color.TRANSPARENT);
+		fillCanvas(0, 0, w, h, canvas1, Color.TRANSPARENT);
 		
 		colorPicker.setValue(Color.BLACK);
 
 		
 	}
 
-	private void fillCanvas(double w, double h, Canvas cv, Color color) {
+	private void fillRecOnColorMap(int x, int y, int w, int h, Color[][] cm, Color cl) {
+		// TODO Auto-generated method stub
+		for (int i = 0; i < w; ++i) {
+			for (int j = 0; j < h; ++j) {
+				cm[i][j] = cl;
+			}
+			
+		}
+		
+	}
+
+	private void fillCanvas(double x, double y, double w, double h, Canvas cv, Color color) {
 		// TODO Auto-generated method stub
 		GraphicsContext gc = cv.getGraphicsContext2D();
 		gc.setFill(color);
-		gc.fillRect(0, 0, w, h);
+		gc.fillRect(x, y, w, h);
 		
 	}
 	
 	
-	private void fillCanvas(Canvas cv, Color color) {
-		fillCanvas(cv.getWidth(), cv.getHeight(), cv, color);
+	private void clearRectOnCanvas(double x, double y, double w, double h, Canvas cv, Color color) {
+		// TODO Auto-generated method stub
+		GraphicsContext gc = cv.getGraphicsContext2D();
+		gc.setFill(color);
+		gc.clearRect(x, y, w, h);
 		
 	}
+	
+	
+	
+	private void fillCanvas(double x, double y, Canvas cv, Color color) {
+		fillCanvas(x, y, cv.getWidth(), cv.getHeight(), cv, color);
+		
+	}
+	
 	
 	
 
